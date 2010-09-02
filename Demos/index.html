@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Custom-Event for MooTools</title>
+	<link rel="stylesheet" media="all" type="text/css" href="style.css" />
+	
+	<style type="text/css">
+	textarea {
+		padding: 0.1em;
+		margin: 0.5em;
+		
+		outline: 0;
+		overflow-y: hidden;
+		resize: none;
+		
+		font-size: 1.5em;
+		
+		width: 20em;
+		border: 1px solid #999;
+		-webkit-border-radius: 4px;
+		border-radius: 4px;
+		
+		-moz-transition-duration: 250ms;
+		-webkit-transition-duration: 250ms;
+		-o-transition-duration: 250ms;
+		transition-duration: 250ms;
+		-webkit-transition-property: -webkit-box-shadow;
+		-moz-transition-property: -moz-box-shadow;
+		-o-transition-property: -o-box-shadow;
+		transition-property: box-shadow;
+	}
+	
+	textarea:focus {
+		-moz-box-shadow: rgba(0, 0, 0, 0.3) 0 0 5px 0;
+		-webkit-box-shadow: rgba(0, 0, 0, 0.3) 0 0 5px 0;
+		-o-box-shadow: rgba(0, 0, 0, 0.3) 0 0 5px 0;
+		box-shadow: rgba(0, 0, 0, 0.3) 0 0 5px 0;
+	}
+	
+	textarea#myAnimatedTextarea {
+		line-height: 1em;
+		height: 1.2em;
+		
+		-webkit-transition-property: height, -webkit-box-shadow;
+		-moz-transition-property: height, -moz-box-shadow;
+		-o-transition-property: height, -o-box-shadow;
+		transition-property: height, box-shadow;
+	}
+	
+	label {
+		font-weight: bold;
+	}
+	
+	label, textarea {
+		display: block;
+	}
+	</style>
+	
+	<script type="text/javascript" src="mootools-core.js"></script>
+	<script type="text/javascript" src="mootools-class-extras.js"></script>
+	
+	<script type="text/javascript" src="../Source/Form.AutoGrow.js"></script>
+	
+	<script type="text/javascript">
+		window.addEvent('domready', function(){
+
+			new Form.AutoGrow('myTextarea');
+			
+			new Form.AutoGrow('myAnimatedTextarea', {
+				minHeightFactor: 1
+			});
+		});
+	</script>
+</head>
+<body>
+<div>
+	<label>Enter some text and newlines to see the element growing</label>
+	<textarea id="myTextarea"></textarea>
+	
+	<label>This one animates through CSS transforms</label>
+	<textarea id="myAnimatedTextarea"></textarea>
+</div>
+</body>
+</html>
