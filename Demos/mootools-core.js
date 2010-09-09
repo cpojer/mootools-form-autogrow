@@ -24,7 +24,7 @@ provides: [Core, MooTools, Type, typeOf, instanceOf]
 
 this.MooTools = {
 	version: '1.3dev',
-	build: '48f9611d30fea60ed2d913402e7033eba84c500d'
+	build: '1c54ace5cbafd875688459aabc385ad40df0fade'
 };
 
 // typeOf, instanceOf
@@ -195,7 +195,7 @@ var implement = function(name, method){
 		if (typeOf(hook) == 'type') implement.call(hook, name, method);
 		else hook.call(this, name, method);
 	}
-
+	
 	var previous = this.prototype[name];
 	if (previous == null || !previous.$protected) this.prototype[name] = method;
 
@@ -380,6 +380,14 @@ Object.extend({
 
 ['Object', 'WhiteSpace', 'TextNode', 'Collection', 'Arguments'].each(function(name){
 	new Type(name);
+});
+
+// Unique ID
+
+var UID = Date.now();
+
+String.extend('generateUID', function(){
+	return (UID++).toString(36);
 });
 
 //<1.2compat>
@@ -686,90 +694,6 @@ var $pick = function(){
 /*
 ---
 
-name: String
-
-description: Contains String Prototypes like camelCase, capitalize, test, and toInt.
-
-license: MIT-style license.
-
-requires: Type
-
-provides: String
-
-...
-*/
-
-String.implement({
-
-	test: function(regex, params){
-		return ((typeOf(regex) == 'regexp') ? regex : new RegExp('' + regex, params)).test(this);
-	},
-
-	contains: function(string, separator){
-		return (separator) ? (separator + this + separator).indexOf(separator + string + separator) > -1 : this.indexOf(string) > -1;
-	},
-
-	trim: function(){
-		return this.replace(/^\s+|\s+$/g, '');
-	},
-
-	clean: function(){
-		return this.replace(/\s+/g, ' ').trim();
-	},
-
-	camelCase: function(){
-		return this.replace(/-\D/g, function(match){
-			return match.charAt(1).toUpperCase();
-		});
-	},
-
-	hyphenate: function(){
-		return this.replace(/[A-Z]/g, function(match){
-			return ('-' + match.charAt(0).toLowerCase());
-		});
-	},
-
-	capitalize: function(){
-		return this.replace(/\b[a-z]/g, function(match){
-			return match.toUpperCase();
-		});
-	},
-
-	escapeRegExp: function(){
-		return this.replace(/([-.*+?^${}()|[\]\/\\])/g, '\\$1');
-	},
-
-	toInt: function(base){
-		return parseInt(this, base || 10);
-	},
-
-	toFloat: function(){
-		return parseFloat(this);
-	},
-
-	hexToRgb: function(array){
-		var hex = this.match(/^#?(\w{1,2})(\w{1,2})(\w{1,2})$/);
-		return (hex) ? hex.slice(1).hexToRgb(array) : null;
-	},
-
-	rgbToHex: function(array){
-		var rgb = this.match(/\d{1,3}/g);
-		return (rgb) ? rgb.rgbToHex(array) : null;
-	},
-
-	substitute: function(object, regexp){
-		return this.replace(regexp || (/\\?\{([^{}]+)\}/g), function(match, name){
-			if (match.charAt(0) == '\\') return match.slice(1);
-			return (object[name] != undefined) ? object[name] : '';
-		});
-	}
-
-});
-
-
-/*
----
-
 name: Function
 
 description: Contains Function Prototypes like create, bind, pass, and delay.
@@ -942,243 +866,85 @@ Number.alias('each', 'times');
 /*
 ---
 
-name: Class
+name: String
 
-description: Contains the Class Function for easily creating, extending, and implementing reusable Classes.
+description: Contains String Prototypes like camelCase, capitalize, test, and toInt.
 
 license: MIT-style license.
 
-requires: [Array, String, Function, Number]
+requires: Type
 
-provides: Class
+provides: String
 
 ...
 */
 
-(function(){
+String.implement({
 
-var Class = this.Class = new Type('Class', function(params){
-
-	if (instanceOf(params, Function)) params = {'initialize': params};
-
-	var newClass = function(){
-		reset(this);
-		if (newClass.$prototyping) return this;
-		this.$caller = null;
-		var value = (this.initialize) ? this.initialize.apply(this, arguments) : this;
-		this.$caller = this.caller = null;
-		return value;
-	}.extend(this);
-
-	newClass.implement(params);
-
-	newClass.$constructor = Class;
-	newClass.prototype.$constructor = newClass;
-	newClass.prototype.parent = parent;
-
-	return newClass;
-
-});
-
-var parent = function(){
-	if (!this.$caller) throw new Error('The method "parent" cannot be called.');
-	var name = this.$caller.$name, parent = this.$caller.$owner.parent;
-	var previous = (parent) ? parent.prototype[name] : null;
-	if (!previous) throw new Error('The method "' + name + '" has no parent.');
-	return previous.apply(this, arguments);
-};
-
-var reset = function(object){
-	for (var key in object){
-		var value = object[key];
-		switch (typeOf(value)){
-			case 'object':
-				var F = function(){};
-				F.prototype = value;
-				var instance = new F;
-				object[key] = reset(instance);
-			break;
-			case 'array': object[key] = value.clone(); break;
-		}
-	}
-	return object;
-};
-
-var wrap = function(self, key, method){
-	if (method.$origin) method = method.$origin;
-	var wrapper = function(){
-		if (method.$protected && this.$caller == null) throw new Error('The method "' + key + '" cannot be called.');
-		var caller = this.caller, current = this.$caller;
-		this.caller = current; this.$caller = wrapper;
-		var result = method.apply(this, arguments);
-		this.$caller = current; this.caller = caller;
-		return result;
-	}.extend({$owner: self, $origin: method, $name: key});
-	return wrapper;
-};
-
-var implement = function(key, value, retain){
-
-	if (Class.Mutators.hasOwnProperty(key)){
-		value = Class.Mutators[key].call(this, value);
-		if (value == null) return this;
-	}
-
-	if (typeOf(value) == 'function'){
-		if (value.$hidden) return this;
-		this.prototype[key] = (retain) ? value : wrap(this, key, value);
-	} else {
-		Object.merge(this.prototype, key, value);
-	}
-
-	return this;
-
-};
-
-var getInstance = function(klass){
-	klass.$prototyping = true;
-	var proto = new klass;
-	delete klass.$prototyping;
-	return proto;
-};
-
-Class.implement('implement', implement.overloadSetter());
-
-Class.Mutators = {
-
-	Extends: function(parent){
-		this.parent = parent;
-		this.prototype = getInstance(parent);
+	test: function(regex, params){
+		return ((typeOf(regex) == 'regexp') ? regex : new RegExp('' + regex, params)).test(this);
 	},
 
-	Implements: function(items){
-		Array.from(items).each(function(item){
-			var instance = new item;
-			for (var key in instance) implement.call(this, key, instance[key], true);
-		}, this);
-	}
-};
-
-})();
-
-
-/*
----
-
-name: Class.Extras
-
-description: Contains Utility Classes that can be implemented into your own Classes to ease the execution of many common tasks.
-
-license: MIT-style license.
-
-requires: Class
-
-provides: [Class.Extras, Chain, Events, Options]
-
-...
-*/
-
-(function(){
-
-this.Chain = new Class({
-
-	$chain: [],
-
-	chain: function(){
-		this.$chain.append(Array.flatten(arguments));
-		return this;
+	contains: function(string, separator){
+		return (separator) ? (separator + this + separator).indexOf(separator + string + separator) > -1 : this.indexOf(string) > -1;
 	},
 
-	callChain: function(){
-		return (this.$chain.length) ? this.$chain.shift().apply(this, arguments) : false;
+	trim: function(){
+		return this.replace(/^\s+|\s+$/g, '');
 	},
 
-	clearChain: function(){
-		this.$chain.empty();
-		return this;
+	clean: function(){
+		return this.replace(/\s+/g, ' ').trim();
+	},
+
+	camelCase: function(){
+		return this.replace(/-\D/g, function(match){
+			return match.charAt(1).toUpperCase();
+		});
+	},
+
+	hyphenate: function(){
+		return this.replace(/[A-Z]/g, function(match){
+			return ('-' + match.charAt(0).toLowerCase());
+		});
+	},
+
+	capitalize: function(){
+		return this.replace(/\b[a-z]/g, function(match){
+			return match.toUpperCase();
+		});
+	},
+
+	escapeRegExp: function(){
+		return this.replace(/([-.*+?^${}()|[\]\/\\])/g, '\\$1');
+	},
+
+	toInt: function(base){
+		return parseInt(this, base || 10);
+	},
+
+	toFloat: function(){
+		return parseFloat(this);
+	},
+
+	hexToRgb: function(array){
+		var hex = this.match(/^#?(\w{1,2})(\w{1,2})(\w{1,2})$/);
+		return (hex) ? hex.slice(1).hexToRgb(array) : null;
+	},
+
+	rgbToHex: function(array){
+		var rgb = this.match(/\d{1,3}/g);
+		return (rgb) ? rgb.rgbToHex(array) : null;
+	},
+
+	substitute: function(object, regexp){
+		return this.replace(regexp || (/\\?\{([^{}]+)\}/g), function(match, name){
+			if (match.charAt(0) == '\\') return match.slice(1);
+			return (object[name] != undefined) ? object[name] : '';
+		});
 	}
 
 });
-
-var removeOn = function(string){
-	return string.replace(/^on([A-Z])/, function(full, first){
-		return first.toLowerCase();
-	});
-};
-
-this.Events = new Class({
-
-	$events: {},
-
-	addEvent: function(type, fn, internal){
-		type = removeOn(type);
-
-		/*<1.2compat>*/
-		if (fn == $empty) return this;
-		/*</1.2compat>*/
-
-		this.$events[type] = (this.$events[type] || []).include(fn);
-		if (internal) fn.internal = true;
-		return this;
-	},
-
-	addEvents: function(events){
-		for (var type in events) this.addEvent(type, events[type]);
-		return this;
-	},
-
-	fireEvent: function(type, args, delay){
-		type = removeOn(type);
-		var events = this.$events[type];
-		if (!events) return this;
-		args = Array.from(args);
-		events.each(function(fn){
-			if (delay) fn.delay(delay, this, args);
-			else fn.apply(this, args);
-		}, this);
-		return this;
-	},
-
-	removeEvent: function(type, fn){
-		type = removeOn(type);
-		var events = this.$events[type];
-		if (events && !fn.internal) events.erase(fn);
-		return this;
-	},
-
-	removeEvents: function(events){
-		var type;
-		if (typeOf(events) == 'object'){
-			for (type in events) this.removeEvent(type, events[type]);
-			return this;
-		}
-		if (events) events = removeOn(events);
-		for (type in this.$events){
-			if (events && events != type) continue;
-			var fns = this.$events[type];
-			for (var i = fns.length; i--;) this.removeEvent(type, fns[i]);
-		}
-		return this;
-	}
-
-});
-
-this.Options = new Class({
-
-	setOptions: function(){
-		var options = this.options = Object.merge.apply(null, [{}, this.options].append(arguments));
-		if (!this.addEvent) return this;
-		for (var option in options){
-			if (typeOf(options[option]) != 'function' || !(/^on[A-Z]/).test(option)) continue;
-			this.addEvent(option, options[option]);
-			delete options[option];
-		}
-		return this;
-	}
-
-});
-
-})();
 
 
 /*
@@ -2999,7 +2765,7 @@ Element.implement({
 	},
 
 	hasClass: function(className){
-		return this.className.contains(className, ' ');
+		return this.className.clean().contains(className, ' ');
 	},
 
 	addClass: function(className){
@@ -3151,12 +2917,20 @@ Element.implement({
 			if (prop && element[prop]) node[prop] = element[prop];
 		};
 
+		var i;
 		if (contents){
 			var ce = clone.getElementsByTagName('*'), te = this.getElementsByTagName('*');
-			for (var i = ce.length; i--;) clean(ce[i], te[i]);
+			for (i = ce.length; i--;) clean(ce[i], te[i]);
 		}
 
 		clean(clone, this);
+		if (Browser.ie){
+			var ts = this.getElementsByTagName('object'),
+				cs = clone.getElementsByTagName('object'),
+				tl = ts.length, cl = cs.length;
+			for (i = 0; i < tl && i < cl; i++)
+				cs[i].outerHTML = ts[i].outerHTML;
+		}
 		return document.id(clone);
 	},
 
@@ -3325,6 +3099,457 @@ Element.Properties.html = (function(){
 
 	return html;
 })();
+
+
+/*
+---
+
+name: Element.Style
+
+description: Contains methods for interacting with the styles of Elements in a fashionable way.
+
+license: MIT-style license.
+
+requires: Element
+
+provides: Element.Style
+
+...
+*/
+
+(function(){
+
+var html = document.html;
+
+Element.Properties.styles = {set: function(styles){
+	this.setStyles(styles);
+}};
+
+var hasOpacity = (html.style.opacity != null);
+var reAlpha = /alpha\(opacity=([\d.]+)\)/i;
+
+var setOpacity = function(element, opacity){
+	if (!element.currentStyle || !element.currentStyle.hasLayout) element.style.zoom = 1;
+	if (hasOpacity){
+		element.style.opacity = opacity;
+	} else {
+		opacity = (opacity == 1) ? '' : 'alpha(opacity=' + opacity * 100 + ')';
+		var filter = element.style.filter || element.getComputedStyle('filter') || '';
+		element.style.filter = filter.test(reAlpha) ? filter.replace(reAlpha, opacity) : filter + opacity;
+	}
+};
+
+Element.Properties.opacity = {
+
+	set: function(opacity){
+		var visibility = this.style.visibility;
+		if (opacity == 0 && visibility != 'hidden') this.style.visibility = 'hidden';
+		else if (opacity != 0 && visibility != 'visible') this.style.visibility = 'visible';
+
+		setOpacity(this, opacity);
+	},
+
+	get: (hasOpacity) ? function(){
+		var opacity = this.style.opacity || this.getComputedStyle('opacity');
+		return (opacity == '') ? 1 : opacity;
+	} : function(){
+		var opacity, filter = (this.style.filter || this.getComputedStyle('filter'));
+		if (filter) opacity = filter.match(reAlpha);
+		return (opacity == null || filter == null) ? 1 : (opacity[1] / 100);
+	}
+
+};
+
+var floatName = (html.style.cssFloat == null) ? 'styleFloat' : 'cssFloat';
+
+Element.implement({
+
+	getComputedStyle: function(property){
+		if (this.currentStyle) return this.currentStyle[property.camelCase()];
+		var defaultView = Element.getDocument(this).defaultView,
+			computed = defaultView ? defaultView.getComputedStyle(this, null) : null;
+		return (computed) ? computed.getPropertyValue((property == floatName) ? 'float' : property.hyphenate()) : null;
+	},
+
+	setOpacity: function(value){
+		setOpacity(this, value);
+		return this;
+	},
+
+	getOpacity: function(){
+		return this.get('opacity');
+	},
+
+	setStyle: function(property, value){
+		switch (property){
+			case 'opacity': return this.set('opacity', parseFloat(value));
+			case 'float': property = floatName;
+		}
+		property = property.camelCase();
+		if (typeOf(value) != 'string'){
+			var map = (Element.Styles[property] || '@').split(' ');
+			value = Array.from(value).map(function(val, i){
+				if (!map[i]) return '';
+				return (typeOf(val) == 'number') ? map[i].replace('@', Math.round(val)) : val;
+			}).join(' ');
+		} else if (value == String(Number(value))){
+			value = Math.round(value);
+		}
+		this.style[property] = value;
+		return this;
+	},
+
+	getStyle: function(property){
+		switch (property){
+			case 'opacity': return this.get('opacity');
+			case 'float': property = floatName;
+		}
+		property = property.camelCase();
+		var result = this.style[property];
+		if (!result || property == 'zIndex'){
+			result = [];
+			for (var style in Element.ShortStyles){
+				if (property != style) continue;
+				for (var s in Element.ShortStyles[style]) result.push(this.getStyle(s));
+				return result.join(' ');
+			}
+			result = this.getComputedStyle(property);
+		}
+		if (result){
+			result = String(result);
+			var color = result.match(/rgba?\([\d\s,]+\)/);
+			if (color) result = result.replace(color[0], color[0].rgbToHex());
+		}
+		if (Browser.opera || (Browser.ie && isNaN(parseFloat(result)))){
+			if (property.test(/^(height|width)$/)){
+				var values = (property == 'width') ? ['left', 'right'] : ['top', 'bottom'], size = 0;
+				values.each(function(value){
+					size += this.getStyle('border-' + value + '-width').toInt() + this.getStyle('padding-' + value).toInt();
+				}, this);
+				return this['offset' + property.capitalize()] - size + 'px';
+			}
+			if (Browser.opera && String(result).test('px')) return result;
+			if (property.test(/(border(.+)Width|margin|padding)/)) return '0px';
+		}
+		return result;
+	},
+
+	setStyles: function(styles){
+		for (var style in styles) this.setStyle(style, styles[style]);
+		return this;
+	},
+
+	getStyles: function(){
+		var result = {};
+		Array.flatten(arguments).each(function(key){
+			result[key] = this.getStyle(key);
+		}, this);
+		return result;
+	}
+
+});
+
+Element.Styles = {
+	left: '@px', top: '@px', bottom: '@px', right: '@px',
+	width: '@px', height: '@px', maxWidth: '@px', maxHeight: '@px', minWidth: '@px', minHeight: '@px',
+	backgroundColor: 'rgb(@, @, @)', backgroundPosition: '@px @px', color: 'rgb(@, @, @)',
+	fontSize: '@px', letterSpacing: '@px', lineHeight: '@px', clip: 'rect(@px @px @px @px)',
+	margin: '@px @px @px @px', padding: '@px @px @px @px', border: '@px @ rgb(@, @, @) @px @ rgb(@, @, @) @px @ rgb(@, @, @)',
+	borderWidth: '@px @px @px @px', borderStyle: '@ @ @ @', borderColor: 'rgb(@, @, @) rgb(@, @, @) rgb(@, @, @) rgb(@, @, @)',
+	zIndex: '@', 'zoom': '@', fontWeight: '@', textIndent: '@px', opacity: '@'
+};
+
+//<1.2compat>
+
+Element.Styles = new Hash(Element.Styles);
+
+//</1.2compat>
+
+Element.ShortStyles = {margin: {}, padding: {}, border: {}, borderWidth: {}, borderStyle: {}, borderColor: {}};
+
+['Top', 'Right', 'Bottom', 'Left'].each(function(direction){
+	var Short = Element.ShortStyles;
+	var All = Element.Styles;
+	['margin', 'padding'].each(function(style){
+		var sd = style + direction;
+		Short[style][sd] = All[sd] = '@px';
+	});
+	var bd = 'border' + direction;
+	Short.border[bd] = All[bd] = '@px @ rgb(@, @, @)';
+	var bdw = bd + 'Width', bds = bd + 'Style', bdc = bd + 'Color';
+	Short[bd] = {};
+	Short.borderWidth[bdw] = Short[bd][bdw] = All[bdw] = '@px';
+	Short.borderStyle[bds] = Short[bd][bds] = All[bds] = '@';
+	Short.borderColor[bdc] = Short[bd][bdc] = All[bdc] = 'rgb(@, @, @)';
+});
+
+})();
+
+
+/*
+---
+
+name: Element.Dimensions
+
+description: Contains methods to work with size, scroll, or positioning of Elements and the window object.
+
+license: MIT-style license.
+
+credits:
+  - Element positioning based on the [qooxdoo](http://qooxdoo.org/) code and smart browser fixes, [LGPL License](http://www.gnu.org/licenses/lgpl.html).
+  - Viewport dimensions based on [YUI](http://developer.yahoo.com/yui/) code, [BSD License](http://developer.yahoo.com/yui/license.html).
+
+requires: [Element, Element.Style]
+
+provides: [Element.Dimensions]
+
+...
+*/
+
+(function(){
+
+Element.implement({
+
+	scrollTo: function(x, y){
+		if (isBody(this)){
+			this.getWindow().scrollTo(x, y);
+		} else {
+			this.scrollLeft = x;
+			this.scrollTop = y;
+		}
+		return this;
+	},
+
+	getSize: function(){
+		if (isBody(this)) return this.getWindow().getSize();
+		return {x: this.offsetWidth, y: this.offsetHeight};
+	},
+
+	getScrollSize: function(){
+		if (isBody(this)) return this.getWindow().getScrollSize();
+		return {x: this.scrollWidth, y: this.scrollHeight};
+	},
+
+	getScroll: function(){
+		if (isBody(this)) return this.getWindow().getScroll();
+		return {x: this.scrollLeft, y: this.scrollTop};
+	},
+
+	getScrolls: function(){
+		var element = this, position = {x: 0, y: 0};
+		while (element && !isBody(element)){
+			position.x += element.scrollLeft;
+			position.y += element.scrollTop;
+			element = element.parentNode;
+		}
+		return position;
+	},
+
+	getOffsetParent: function(){
+		var element = this;
+		if (isBody(element)) return null;
+		if (!Browser.ie) return element.offsetParent;
+		while ((element = element.parentNode)){
+			if (styleString(element, 'position') != 'static' || isBody(element)) return element;
+		}
+		return null;
+	},
+
+	getOffsets: function(){
+		if (this.getBoundingClientRect && !Browser.Platform.ios){
+			var bound = this.getBoundingClientRect(),
+				html = document.id(this.getDocument().documentElement),
+				htmlScroll = html.getScroll(),
+				elemScrolls = this.getScrolls(),
+				elemScroll = this.getScroll(),
+				isFixed = (styleString(this, 'position') == 'fixed');
+
+			return {
+				x: bound.left.toInt() + elemScrolls.x - elemScroll.x + ((isFixed) ? 0 : htmlScroll.x) - html.clientLeft,
+				y: bound.top.toInt()  + elemScrolls.y - elemScroll.y + ((isFixed) ? 0 : htmlScroll.y) - html.clientTop
+			};
+		}
+
+		var element = this, position = {x: 0, y: 0};
+		if (isBody(this)) return position;
+
+		while (element && !isBody(element)){
+			position.x += element.offsetLeft;
+			position.y += element.offsetTop;
+
+			if (Browser.firefox){
+				if (!borderBox(element)){
+					position.x += leftBorder(element);
+					position.y += topBorder(element);
+				}
+				var parent = element.parentNode;
+				if (parent && styleString(parent, 'overflow') != 'visible'){
+					position.x += leftBorder(parent);
+					position.y += topBorder(parent);
+				}
+			} else if (element != this && Browser.safari){
+				position.x += leftBorder(element);
+				position.y += topBorder(element);
+			}
+
+			element = element.offsetParent;
+		}
+		if (Browser.firefox && !borderBox(this)){
+			position.x -= leftBorder(this);
+			position.y -= topBorder(this);
+		}
+		return position;
+	},
+
+	getPosition: function(relative){
+		if (isBody(this)) return {x: 0, y: 0};
+		var offset = this.getOffsets(),
+			scroll = this.getScrolls();
+		var position = {
+			x: offset.x - scroll.x,
+			y: offset.y - scroll.y
+		};
+		
+		if (relative && (relative = document.id(relative))){
+			var relativePosition = relative.getPosition();
+			return {x: position.x - relativePosition.x - leftBorder(relative), y: position.y - relativePosition.y - topBorder(relative)};
+		}
+		return position;
+	},
+
+	getCoordinates: function(element){
+		if (isBody(this)) return this.getWindow().getCoordinates();
+		var position = this.getPosition(element),
+			size = this.getSize();
+		var obj = {
+			left: position.x,
+			top: position.y,
+			width: size.x,
+			height: size.y
+		};
+		obj.right = obj.left + obj.width;
+		obj.bottom = obj.top + obj.height;
+		return obj;
+	},
+
+	computePosition: function(obj){
+		return {
+			left: obj.x - styleNumber(this, 'margin-left'),
+			top: obj.y - styleNumber(this, 'margin-top')
+		};
+	},
+
+	setPosition: function(obj){
+		return this.setStyles(this.computePosition(obj));
+	}
+
+});
+
+
+[Document, Window].invoke('implement', {
+
+	getSize: function(){
+		if (Browser.opera || Browser.safari){
+			var win = this.getWindow();
+			return {x: win.innerWidth, y: win.innerHeight};
+		}
+		var doc = getCompatElement(this);
+		return {x: doc.clientWidth, y: doc.clientHeight};
+	},
+
+	getScroll: function(){
+		var win = this.getWindow(), doc = getCompatElement(this);
+		return {x: win.pageXOffset || doc.scrollLeft, y: win.pageYOffset || doc.scrollTop};
+	},
+
+	getScrollSize: function(){
+		var doc = getCompatElement(this),
+			min = this.getSize(),
+			body = this.getDocument().body;
+
+		return {x: Math.max(doc.scrollWidth, body.scrollWidth, min.x), y: Math.max(doc.scrollHeight, body.scrollHeight, min.y)};
+	},
+
+	getPosition: function(){
+		return {x: 0, y: 0};
+	},
+
+	getCoordinates: function(){
+		var size = this.getSize();
+		return {top: 0, left: 0, bottom: size.y, right: size.x, height: size.y, width: size.x};
+	}
+
+});
+
+// private methods
+
+var styleString = Element.getComputedStyle;
+
+function styleNumber(element, style){
+	return styleString(element, style).toInt() || 0;
+};
+
+function borderBox(element){
+	return styleString(element, '-moz-box-sizing') == 'border-box';
+};
+
+function topBorder(element){
+	return styleNumber(element, 'border-top-width');
+};
+
+function leftBorder(element){
+	return styleNumber(element, 'border-left-width');
+};
+
+function isBody(element){
+	return (/^(?:body|html)$/i).test(element.tagName);
+};
+
+function getCompatElement(element){
+	var doc = element.getDocument();
+	return (!doc.compatMode || doc.compatMode == 'CSS1Compat') ? doc.html : doc.body;
+};
+
+})();
+
+//aliases
+Element.alias({position: 'setPosition'}); //compatability
+
+[Window, Document, Element].invoke('implement', {
+
+	getHeight: function(){
+		return this.getSize().y;
+	},
+
+	getWidth: function(){
+		return this.getSize().x;
+	},
+
+	getScrollTop: function(){
+		return this.getScroll().y;
+	},
+
+	getScrollLeft: function(){
+		return this.getScroll().x;
+	},
+
+	getScrollHeight: function(){
+		return this.getScrollSize().y;
+	},
+
+	getScrollWidth: function(){
+		return this.getScrollSize().x;
+	},
+
+	getTop: function(){
+		return this.getPosition().y;
+	},
+
+	getLeft: function(){
+		return this.getPosition().x;
+	}
+
+});
 
 
 /*
@@ -3686,6 +3911,18 @@ Element.Properties.events = {set: function(events){
 	this.addEvents(events);
 }};
 
+var triggerEvent = function(type, args, delay){
+	var events = this.retrieve('events');
+	if (!events || !events[type]) return this;
+	args = Array.from(args);
+
+	events[type].keys.each(function(fn){
+		if (delay) fn.delay(delay, this, args);
+		else fn.apply(this, args);
+	}, this);
+	return this;
+};
+
 [Element, Window, Document].invoke('implement', {
 
 	addEvent: function(type, fn){
@@ -3727,10 +3964,12 @@ Element.Properties.events = {set: function(events){
 	removeEvent: function(type, fn){
 		var events = this.retrieve('events');
 		if (!events || !events[type]) return this;
-		var index = events[type].keys.indexOf(fn);
+		var list = events[type];
+		var index = list.keys.indexOf(fn);
 		if (index == -1) return this;
-		events[type].keys.splice(index, 1);
-		var value = events[type].values.splice(index, 1)[0];
+		var value = list.values[index];
+		delete list.keys[index];
+		delete list.values[index];
 		var custom = Element.Events[type];
 		if (custom){
 			if (custom.onRemove) custom.onRemove.call(this, fn);
@@ -3756,22 +3995,15 @@ Element.Properties.events = {set: function(events){
 			for (type in attached) this.removeEvents(type);
 			this.eliminate('events');
 		} else if (attached[events]){
-			while (attached[events].keys[0]) this.removeEvent(events, attached[events].keys[0]);
+			attached[events].keys.each(function(fn){
+				this.removeEvent(events, fn);
+			}, this);
 			delete attached[events];
 		}
 		return this;
 	},
 
-	fireEvent: function(type, args, delay){
-		var events = this.retrieve('events');
-		if (!events || !events[type]) return this;
-		args = Array.from(args);
-		events[type].keys.each(function(fn){
-			if (delay) fn.delay(delay, this, args);
-			else fn.apply(this, args);
-		}, this);
-		return this;
-	},
+	triggerEvent: triggerEvent,
 
 	cloneEvents: function(from, type){
 		from = document.id(from);
@@ -3788,6 +4020,12 @@ Element.Properties.events = {set: function(events){
 	}
 
 });
+
+//<1.2compat>
+[Element, Window, Document].invoke('implement', {
+	fireEvent: triggerEvent
+});
+//</1.2compat>
 
 Element.NativeEvents = {
 	click: 2, dblclick: 2, mouseup: 2, mousedown: 2, contextmenu: 2, //mouse buttons
@@ -3839,453 +4077,6 @@ Element.Events = new Hash(Element.Events);
 /*
 ---
 
-name: Element.Style
-
-description: Contains methods for interacting with the styles of Elements in a fashionable way.
-
-license: MIT-style license.
-
-requires: Element
-
-provides: Element.Style
-
-...
-*/
-
-(function(){
-
-var html = document.html;
-
-Element.Properties.styles = {set: function(styles){
-	this.setStyles(styles);
-}};
-
-var hasOpacity = (html.style.opacity != null);
-var reAlpha = /alpha\(opacity=([\d.]+)\)/i;
-
-var setOpacity = function(element, opacity){
-	if (!element.currentStyle || !element.currentStyle.hasLayout) element.style.zoom = 1;
-	if (hasOpacity){
-		element.style.opacity = opacity;
-	} else {
-		opacity = (opacity == 1) ? '' : 'alpha(opacity=' + opacity * 100 + ')';
-		var filter = element.style.filter || element.getComputedStyle('filter') || '';
-		element.style.filter = filter.test(reAlpha) ? filter.replace(reAlpha, opacity) : filter + opacity;
-	}
-};
-
-Element.Properties.opacity = {
-
-	set: function(opacity){
-		var visibility = this.style.visibility;
-		if (opacity == 0 && visibility != 'hidden') this.style.visibility = 'hidden';
-		else if (opacity != 0 && visibility != 'visible') this.style.visibility = 'visible';
-
-		setOpacity(this, opacity);
-	},
-
-	get: (hasOpacity) ? function(){
-		var opacity = this.style.opacity || this.getComputedStyle('opacity');
-		return (opacity == '') ? 1 : opacity;
-	} : function(){
-		var opacity, filter = (this.style.filter || this.getComputedStyle('filter'));
-		if (filter) opacity = filter.match(reAlpha);
-		return (opacity == null || filter == null) ? 1 : (opacity[1] / 100);
-	}
-
-};
-
-var floatName = (html.style.cssFloat == null) ? 'styleFloat' : 'cssFloat';
-
-Element.implement({
-
-	getComputedStyle: function(property){
-		if (this.currentStyle) return this.currentStyle[property.camelCase()];
-		var defaultView = Element.getDocument(this).defaultView,
-			computed = defaultView ? defaultView.getComputedStyle(this, null) : null;
-		return (computed) ? computed.getPropertyValue((property == floatName) ? 'float' : property.hyphenate()) : null;
-	},
-
-	setOpacity: function(value){
-		setOpacity(this, value);
-		return this;
-	},
-
-	getOpacity: function(){
-		return this.get('opacity');
-	},
-
-	setStyle: function(property, value){
-		switch (property){
-			case 'opacity': return this.set('opacity', parseFloat(value));
-			case 'float': property = floatName;
-		}
-		property = property.camelCase();
-		if (typeOf(value) != 'string'){
-			var map = (Element.Styles[property] || '@').split(' ');
-			value = Array.from(value).map(function(val, i){
-				if (!map[i]) return '';
-				return (typeOf(val) == 'number') ? map[i].replace('@', Math.round(val)) : val;
-			}).join(' ');
-		} else if (value == String(Number(value))){
-			value = Math.round(value);
-		}
-		this.style[property] = value;
-		return this;
-	},
-
-	getStyle: function(property){
-		switch (property){
-			case 'opacity': return this.get('opacity');
-			case 'float': property = floatName;
-		}
-		property = property.camelCase();
-		var result = this.style[property];
-		if (!result || property == 'zIndex'){
-			result = [];
-			for (var style in Element.ShortStyles){
-				if (property != style) continue;
-				for (var s in Element.ShortStyles[style]) result.push(this.getStyle(s));
-				return result.join(' ');
-			}
-			result = this.getComputedStyle(property);
-		}
-		if (result){
-			result = String(result);
-			var color = result.match(/rgba?\([\d\s,]+\)/);
-			if (color) result = result.replace(color[0], color[0].rgbToHex());
-		}
-		if (Browser.opera || (Browser.ie && isNaN(parseFloat(result)))){
-			if (property.test(/^(height|width)$/)){
-				var values = (property == 'width') ? ['left', 'right'] : ['top', 'bottom'], size = 0;
-				values.each(function(value){
-					size += this.getStyle('border-' + value + '-width').toInt() + this.getStyle('padding-' + value).toInt();
-				}, this);
-				return this['offset' + property.capitalize()] - size + 'px';
-			}
-			if (Browser.opera && String(result).test('px')) return result;
-			if (property.test(/(border(.+)Width|margin|padding)/)) return '0px';
-		}
-		return result;
-	},
-
-	setStyles: function(styles){
-		for (var style in styles) this.setStyle(style, styles[style]);
-		return this;
-	},
-
-	getStyles: function(){
-		var result = {};
-		Array.flatten(arguments).each(function(key){
-			result[key] = this.getStyle(key);
-		}, this);
-		return result;
-	}
-
-});
-
-Element.Styles = {
-	left: '@px', top: '@px', bottom: '@px', right: '@px',
-	width: '@px', height: '@px', maxWidth: '@px', maxHeight: '@px', minWidth: '@px', minHeight: '@px',
-	backgroundColor: 'rgb(@, @, @)', backgroundPosition: '@px @px', color: 'rgb(@, @, @)',
-	fontSize: '@px', letterSpacing: '@px', lineHeight: '@px', clip: 'rect(@px @px @px @px)',
-	margin: '@px @px @px @px', padding: '@px @px @px @px', border: '@px @ rgb(@, @, @) @px @ rgb(@, @, @) @px @ rgb(@, @, @)',
-	borderWidth: '@px @px @px @px', borderStyle: '@ @ @ @', borderColor: 'rgb(@, @, @) rgb(@, @, @) rgb(@, @, @) rgb(@, @, @)',
-	zIndex: '@', 'zoom': '@', fontWeight: '@', textIndent: '@px', opacity: '@'
-};
-
-//<1.2compat>
-
-Element.Styles = new Hash(Element.Styles);
-
-//</1.2compat>
-
-Element.ShortStyles = {margin: {}, padding: {}, border: {}, borderWidth: {}, borderStyle: {}, borderColor: {}};
-
-['Top', 'Right', 'Bottom', 'Left'].each(function(direction){
-	var Short = Element.ShortStyles;
-	var All = Element.Styles;
-	['margin', 'padding'].each(function(style){
-		var sd = style + direction;
-		Short[style][sd] = All[sd] = '@px';
-	});
-	var bd = 'border' + direction;
-	Short.border[bd] = All[bd] = '@px @ rgb(@, @, @)';
-	var bdw = bd + 'Width', bds = bd + 'Style', bdc = bd + 'Color';
-	Short[bd] = {};
-	Short.borderWidth[bdw] = Short[bd][bdw] = All[bdw] = '@px';
-	Short.borderStyle[bds] = Short[bd][bds] = All[bds] = '@';
-	Short.borderColor[bdc] = Short[bd][bdc] = All[bdc] = 'rgb(@, @, @)';
-});
-
-})();
-
-
-/*
----
-
-name: Element.Dimensions
-
-description: Contains methods to work with size, scroll, or positioning of Elements and the window object.
-
-license: MIT-style license.
-
-credits:
-  - Element positioning based on the [qooxdoo](http://qooxdoo.org/) code and smart browser fixes, [LGPL License](http://www.gnu.org/licenses/lgpl.html).
-  - Viewport dimensions based on [YUI](http://developer.yahoo.com/yui/) code, [BSD License](http://developer.yahoo.com/yui/license.html).
-
-requires: [Element, Element.Style]
-
-provides: [Element.Dimensions]
-
-...
-*/
-
-(function(){
-
-Element.implement({
-
-	scrollTo: function(x, y){
-		if (isBody(this)){
-			this.getWindow().scrollTo(x, y);
-		} else {
-			this.scrollLeft = x;
-			this.scrollTop = y;
-		}
-		return this;
-	},
-
-	getSize: function(){
-		if (isBody(this)) return this.getWindow().getSize();
-		return {x: this.offsetWidth, y: this.offsetHeight};
-	},
-
-	getScrollSize: function(){
-		if (isBody(this)) return this.getWindow().getScrollSize();
-		return {x: this.scrollWidth, y: this.scrollHeight};
-	},
-
-	getScroll: function(){
-		if (isBody(this)) return this.getWindow().getScroll();
-		return {x: this.scrollLeft, y: this.scrollTop};
-	},
-
-	getScrolls: function(){
-		var element = this, position = {x: 0, y: 0};
-		while (element && !isBody(element)){
-			position.x += element.scrollLeft;
-			position.y += element.scrollTop;
-			element = element.parentNode;
-		}
-		return position;
-	},
-
-	getOffsetParent: function(){
-		var element = this;
-		if (isBody(element)) return null;
-		if (!Browser.ie) return element.offsetParent;
-		while ((element = element.parentNode)){
-			if (styleString(element, 'position') != 'static' || isBody(element)) return element;
-		}
-		return null;
-	},
-
-	getOffsets: function(){
-		if (this.getBoundingClientRect && !Browser.Platform.ios){
-			var bound = this.getBoundingClientRect(),
-				html = document.id(this.getDocument().documentElement),
-				htmlScroll = html.getScroll(),
-				elemScrolls = this.getScrolls(),
-				elemScroll = this.getScroll(),
-				isFixed = (styleString(this, 'position') == 'fixed');
-
-			return {
-				x: bound.left.toInt() + elemScrolls.x - elemScroll.x + ((isFixed) ? 0 : htmlScroll.x) - html.clientLeft,
-				y: bound.top.toInt()  + elemScrolls.y - elemScroll.y + ((isFixed) ? 0 : htmlScroll.y) - html.clientTop
-			};
-		}
-
-		var element = this, position = {x: 0, y: 0};
-		if (isBody(this)) return position;
-
-		while (element && !isBody(element)){
-			position.x += element.offsetLeft;
-			position.y += element.offsetTop;
-
-			if (Browser.firefox){
-				if (!borderBox(element)){
-					position.x += leftBorder(element);
-					position.y += topBorder(element);
-				}
-				var parent = element.parentNode;
-				if (parent && styleString(parent, 'overflow') != 'visible'){
-					position.x += leftBorder(parent);
-					position.y += topBorder(parent);
-				}
-			} else if (element != this && Browser.safari){
-				position.x += leftBorder(element);
-				position.y += topBorder(element);
-			}
-
-			element = element.offsetParent;
-		}
-		if (Browser.firefox && !borderBox(this)){
-			position.x -= leftBorder(this);
-			position.y -= topBorder(this);
-		}
-		return position;
-	},
-
-	getPosition: function(relative){
-		if (isBody(this)) return {x: 0, y: 0};
-		var offset = this.getOffsets(),
-				scroll = this.getScrolls();
-		var position = {
-			x: offset.x - scroll.x,
-			y: offset.y - scroll.y
-		};
-		var relativePosition = (relative && (relative = document.id(relative))) ? relative.getPosition() : {x: 0, y: 0};
-		return {x: position.x - relativePosition.x, y: position.y - relativePosition.y};
-	},
-
-	getCoordinates: function(element){
-		if (isBody(this)) return this.getWindow().getCoordinates();
-		var position = this.getPosition(element),
-				size = this.getSize();
-		var obj = {
-			left: position.x,
-			top: position.y,
-			width: size.x,
-			height: size.y
-		};
-		obj.right = obj.left + obj.width;
-		obj.bottom = obj.top + obj.height;
-		return obj;
-	},
-
-	computePosition: function(obj){
-		return {
-			left: obj.x - styleNumber(this, 'margin-left'),
-			top: obj.y - styleNumber(this, 'margin-top')
-		};
-	},
-
-	setPosition: function(obj){
-		return this.setStyles(this.computePosition(obj));
-	}
-
-});
-
-
-[Document, Window].invoke('implement', {
-
-	getSize: function(){
-		if (Browser.opera || Browser.safari){
-			var win = this.getWindow();
-			return {x: win.innerWidth, y: win.innerHeight};
-		}
-		var doc = getCompatElement(this);
-		return {x: doc.clientWidth, y: doc.clientHeight};
-	},
-
-	getScroll: function(){
-		var win = this.getWindow(), doc = getCompatElement(this);
-		return {x: win.pageXOffset || doc.scrollLeft, y: win.pageYOffset || doc.scrollTop};
-	},
-
-	getScrollSize: function(){
-		var doc = getCompatElement(this),
-			min = this.getSize(),
-			body = this.getDocument().body;
-
-		return {x: Math.max(doc.scrollWidth, body.scrollWidth, min.x), y: Math.max(doc.scrollHeight, body.scrollHeight, min.y)};
-	},
-
-	getPosition: function(){
-		return {x: 0, y: 0};
-	},
-
-	getCoordinates: function(){
-		var size = this.getSize();
-		return {top: 0, left: 0, bottom: size.y, right: size.x, height: size.y, width: size.x};
-	}
-
-});
-
-// private methods
-
-var styleString = Element.getComputedStyle;
-
-function styleNumber(element, style){
-	return styleString(element, style).toInt() || 0;
-};
-
-function borderBox(element){
-	return styleString(element, '-moz-box-sizing') == 'border-box';
-};
-
-function topBorder(element){
-	return styleNumber(element, 'border-top-width');
-};
-
-function leftBorder(element){
-	return styleNumber(element, 'border-left-width');
-};
-
-function isBody(element){
-	return (/^(?:body|html)$/i).test(element.tagName);
-};
-
-function getCompatElement(element){
-	var doc = element.getDocument();
-	return (!doc.compatMode || doc.compatMode == 'CSS1Compat') ? doc.html : doc.body;
-};
-
-})();
-
-//aliases
-Element.alias({position: 'setPosition'}); //compatability
-
-[Window, Document, Element].invoke('implement', {
-
-	getHeight: function(){
-		return this.getSize().y;
-	},
-
-	getWidth: function(){
-		return this.getSize().x;
-	},
-
-	getScrollTop: function(){
-		return this.getScroll().y;
-	},
-
-	getScrollLeft: function(){
-		return this.getScroll().x;
-	},
-
-	getScrollHeight: function(){
-		return this.getScrollSize().y;
-	},
-
-	getScrollWidth: function(){
-		return this.getScrollSize().x;
-	},
-
-	getTop: function(){
-		return this.getPosition().y;
-	},
-
-	getLeft: function(){
-		return this.getPosition().x;
-	}
-
-});
-
-
-/*
----
-
 name: DomReady
 
 description: Contains the custom event domready.
@@ -4304,7 +4095,13 @@ provides: DomReady
 var ready,
 	checks = [],
 	shouldPoll,
-	timer;
+	timer,
+	isFramed = true;
+
+// Thanks to Rich Dougherty <http://www.richdougherty.com/>
+try {
+	isFramed = window.frameElement != null;
+} catch(e){}
 
 var domready = function(){
 	clearTimeout(timer);
@@ -4312,8 +4109,8 @@ var domready = function(){
 	Browser.loaded = ready = true;
 	document.removeListener('DOMContentLoaded', domready).removeListener('readystatechange', check);
 	
-	document.fireEvent('domready');
-	window.fireEvent('domready');
+	document.triggerEvent('domready');
+	window.triggerEvent('domready');
 };
 
 var check = function(){
@@ -4334,7 +4131,7 @@ document.addListener('DOMContentLoaded', domready);
 
 // doScroll technique by Diego Perini http://javascript.nwbox.com/IEContentLoaded/
 var testElement = document.createElement('div');
-if (testElement.doScroll && this.window == this.top){
+if (testElement.doScroll && !isFramed){
 	checks.push(function(){
 		try {
 			testElement.doScroll();
