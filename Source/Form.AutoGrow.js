@@ -11,7 +11,7 @@ credits: Based on a script by Gary Glass (www.bookballoon.com)
 
 license: MIT-style license.
 
-requires: [Core/Class.Extras, Core/Element, Core/Element.Event, Core/Element.Style, Core/Element.Dimensions]
+requires: [Core/Class.Extras, Core/Element, Core/Element.Event, Core/Element.Style, Core/Element.Dimensions, Class-Extras/Class.Binds, Class-Extras/Class.Singleton]
 
 provides: Form.AutoGrow
 
