@@ -100,7 +100,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 		if (element.getHeight() != height){
 			element.setStyle('height', this.minHeight.max(height));
 
-			AutoGrow.triggerEvent('resize', [this]);
+			AutoGrow.fireEvent('resize', [this]);
 		}
 		
 		return this;
