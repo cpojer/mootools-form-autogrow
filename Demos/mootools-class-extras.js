@@ -88,12 +88,8 @@ var storage = {
 
 };
 
-var UID = Math.floor(Math.random() * 10e12), uniqueID = function(){
-	return (++UID).toString(36);
-};
-
 Class.Singleton = function(){
-	this.$className = uniqueID();
+	this.$className = String.uniqueID();
 };
 
 Class.Singleton.prototype.check = function(item){
