@@ -3,18 +3,23 @@ Form AutoGrow
 
 Automatically resizes textareas based on their content.
 
+This Plugin is part of MooTools [PowerTools!](http://cpojer.net/PowerTools).
+
+* [Build PowerTools!](http://cpojer.net/PowerTools)
+* [Fork PowerTools!](https://github.com/cpojer/PowerTools)
+
 Build
 -----
 
 Build via [Packager](http://github.com/kamicane/packager), requires [MooTools Core](http://github.com/mootools/mootools-core) and [MooTools Class-Extras](http://github.com/cpojer/mootools-class-extras) to be registered to Packager already
 
 
-	./packager register /path/to/form-autogrow
-	./packager build Form-AutoGrow/* > form-autogrow.js
+	packager register /path/to/form-autogrow
+	packager build Form-AutoGrow/* > form-autogrow.js
 
 To build this plugin without external dependencies use
 
-	./packager build Form-AutoGrow/* +use-only Form-AutoGrow > form-autogrow.js
+	packager build Form-AutoGrow/* +use-only Form-AutoGrow > form-autogrow.js
 
 Demo
 ----
