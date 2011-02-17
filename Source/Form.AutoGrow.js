@@ -114,4 +114,4 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 
 AutoGrow.extend(new Events);
 
-})();
+}).call(this);
