@@ -3,6 +3,8 @@ Form AutoGrow
 
 Automatically resizes textareas based on their content.
 
+![Screenshot](http://cpojer.net/Logo/form-autogrow.png)
+
 This Plugin is part of MooTools [PowerTools!](http://cpojer.net/PowerTools).
 
 * [Build PowerTools!](http://cpojer.net/PowerTools)
