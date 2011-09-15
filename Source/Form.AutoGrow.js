@@ -39,6 +39,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 
 	options: {
 		minHeightFactor: 2,
+		bindWithChange: true, // helps when setting value via javascript
 		margin: 0
 	},
 
@@ -63,6 +64,9 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 			keydown: this.bound('keydown'),
 			scroll: this.bound('scroll')
 		});
+		
+		if (this.options.bindWithChange)
+			this.element.addEvent('change', this.bound('keydown'));
 
 		return this;
 	},
@@ -73,6 +77,9 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 			keydown: this.bound('keydown'),
 			scroll: this.bound('scroll')
 		});
+		
+		if (this.options.bindWithChange)
+			this.element.removeEvent('change', this.bound('keydown'));
 
 		return this;
 	},
