@@ -45,7 +45,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 	initialize: function(element, options){
 		this.setOptions(options);
 		element = this.element = document.id(element);
-		
+
 		return this.check(element) || this.setup();
 	},
 
@@ -78,7 +78,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 	},
 
 	focus: function(){
-		wrapper.setStyles(this.element.getStyles('fontSize', 'fontFamily', 'width', 'lineHeight', 'padding')).inject(document.body);
+		wrapper.setStyles(this.element.getStyles('fontSize', 'fontFamily', 'width', 'lineHeight')).inject(document.body);
 
 		this.minHeight = (wrapper.set('html', 'A').getHeight() + this.options.margin) * this.options.minHeightFactor;
 
@@ -92,7 +92,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 	resize: function(){
 		var element = this.element,
 			html = escapeHTML(element.get('value')).replace(/\n|\r\n/g, '<br/>A');
-		
+
 		if (wrapper.get('html') == html) return this;
 
 		wrapper.set('html', html);
@@ -102,7 +102,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 
 			AutoGrow.fireEvent('resize', [this]);
 		}
-		
+
 		return this;
 	},
 
