@@ -23,6 +23,7 @@ provides: Form.AutoGrow
 var wrapper = new Element('div').setStyles({
 	overflowX: 'hidden',
 	position: 'absolute',
+	wordBreak: 'break-all',
 	top: 0,
 	left: -9999
 });
