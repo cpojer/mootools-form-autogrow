@@ -79,7 +79,7 @@ var AutoGrow = this.Form.AutoGrow = new Class({
 	},
 
 	focus: function(){
-		wrapper.setStyles(this.element.getStyles('fontSize', 'fontFamily', 'width', 'lineHeight')).inject(document.body);
+		wrapper.setStyles(this.element.getStyles('borderStyle', 'borderWidth', '-moz-box-sizing', '-web-box-sizing', 'box-sizing', 'fontFamily', 'fontSize', 'fontStyle', 'fontVariant', 'fontWeight', 'lineHeight', 'padding', 'width')).inject(document.body);
 
 		this.minHeight = (wrapper.set('html', 'A').getHeight() + this.options.margin) * this.options.minHeightFactor;
 
